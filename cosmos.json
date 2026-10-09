@@ -1,0 +1,32 @@
+{
+  "build": { "strategy": "none" },
+  "ci": {
+    "steps": [
+      {
+        "name": "test-go",
+        "image": "golang:1.25",
+        "commands": [
+          "cd $CI_WORKSPACE/go",
+          "go vet ./...",
+          "go test ./..."
+        ]
+      },
+      {
+        "name": "test-js",
+        "image": "node:22",
+        "commands": [
+          "cd $CI_WORKSPACE/js",
+          "npm test"
+        ]
+      },
+      {
+        "name": "release",
+        "image": "node:22",
+        "commands": [
+          "cd $CI_WORKSPACE",
+          "if [ \"$CI_COMMIT_BRANCH\" = main ]; then sh scripts/release.sh; else echo 'not main, skipping release'; fi"
+        ]
+      }
+    ]
+  }
+}

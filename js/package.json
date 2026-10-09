@@ -1,0 +1,25 @@
+{
+  "name": "@waka/client",
+  "version": "0.1.0",
+  "description": "Client SDK for Waka Hub: login, per-server sessions, directory, inbox and device keys. Logic only, no UI.",
+  "type": "module",
+  "main": "src/index.js",
+  "types": "src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.d.ts",
+      "default": "./src/index.js"
+    }
+  },
+  "files": [
+    "src"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/azukaar/waka-sdk.git",
+    "directory": "js"
+  },
+  "scripts": {
+    "test": "node --test test/stream.test.mjs test/client.test.mjs"
+  }
+}
