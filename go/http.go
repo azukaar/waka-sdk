@@ -18,6 +18,10 @@ import (
 func (w *Waka) Handler() http.Handler {
 	m := http.NewServeMux()
 	m.HandleFunc("GET /.well-known/waka-server", w.handleInfo)
+	// A claim that lost the race to the one that brought this server up.
+	m.HandleFunc("POST /waka/claim", func(rw http.ResponseWriter, r *http.Request) {
+		writeErr(rw, http.StatusConflict, "this server has already been claimed")
+	})
 
 	m.HandleFunc("POST /waka/session", w.handleSession)
 	m.HandleFunc("GET /waka/login", w.handleWebLogin)
@@ -101,7 +105,7 @@ func fail(rw http.ResponseWriter, err error) {
 
 func (w *Waka) handleInfo(rw http.ResponseWriter, r *http.Request) {
 	writeJSON(rw, http.StatusOK, map[string]any{
-		"server_id": w.cfg.ServerID, "issuer": w.cfg.Issuer, "name": w.cfg.Name, "app": w.cfg.App, "sign_in": w.SignInMode(),
+		"server_id": w.cfg.ServerID, "issuer": w.cfg.Issuer, "name": w.cfg.Name, "app": w.cfg.App, "sign_in": w.SignInMode(), "claimed": true,
 	})
 }
 

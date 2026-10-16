@@ -59,7 +59,7 @@ The `waka_` tables of an older schema are dropped at start-up, not migrated.
 | `Describe` | | A resource's display title |
 | `Joinable` | | What a user could join but has not |
 | `CanJoin` | | The roles a user gets by joining an open resource |
-| `AllowGrant` | allowed | `func(ctx, *User, Resource) bool`: asked before a user gains access by a share, a link (claimed or joined), an open join or accepting a pending share. `false` refuses with `ErrForbidden`. The app's own `Grant` and `SetRoles` are not asked. Molten keeps someone banned from one realm out of it with this |
+| `AllowGrant` | allowed | `func(ctx, *User, Resource) bool`: asked before a user gains access by a share, a link (claimed or joined), an open join or accepting a pending share. `false` refuses with `ErrForbidden`. The app's own `Grant` and `SetRoles` are not asked. Together keeps someone banned from one realm out of it with this |
 | `OnGrant` | | Called after every grant change. See Grant changes |
 
 ## Who is asking
@@ -175,7 +175,7 @@ The rules:
 - Changing or revoking a grant needs `SharePerm` for one's own links and pending invites, and `ManagePerm` for anything else. The grant's holder must hold no permission the caller lacks (for a link, its roles; for a person, everything they hold there). Nobody changes their own grant this way; they leave.
 - Sharing with someone who already has access adds roles to their grant, under the same rule.
 
-Molten's realm: `SharePerm: "CREATE_INVITE"`, `ManagePerm: "MANAGE_INVITES"`, and `Roles` returning the realm's roles with their permission bits as strings.
+Together's realm: `SharePerm: "CREATE_INVITE"`, `ManagePerm: "MANAGE_INVITES"`, and `Roles` returning the realm's roles with their permission bits as strings.
 
 ## Grant changes
 
@@ -230,7 +230,7 @@ grant, err := w.ClaimLink(ctx, user, linkID, secret, password)      // the signe
 session, grant, err := w.JoinLink(ctx, hubToken, linkID, secret, password) // the same with a hub token, signing them in
 ```
 
-`AllowLink` decides which roles each kind may carry on a resource (Molten: public links only with read-only roles). `JoinLink` skips `SignIn`, so a link works on an invite-only server. Claiming adds the link's roles to any the user holds; `MaxUses` counts claims that changed something.
+`AllowLink` decides which roles each kind may carry on a resource (Together: public links only with read-only roles). `JoinLink` skips `SignIn`, so a link works on an invite-only server. Claiming adds the link's roles to any the user holds; `MaxUses` counts claims that changed something.
 
 A link with a password shows its title and who made it only with the right password. Wrong passwords, and wrong secrets for a link ID, count as tries: 10 a minute per link, then 429.
 

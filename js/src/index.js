@@ -387,6 +387,8 @@ export class WakaClient {
 
   /**
    * Adds a server by its address. This is the consent step for that server.
+   * A server nobody owns yet is claimed on the way: registered on the hub
+   * under this account, which makes it the owner, and handed its credentials.
    * @returns {Promise<Server>}
    */
   async addServer(address) {
@@ -395,9 +397,28 @@ export class WakaClient {
     if (trimSlash(info.issuer) !== this.hubUrl) {
       throw new WakaError(`that server uses another hub (${info.issuer})`)
     }
-    const server = await this.#hub('PUT', `/api/directory/${encodeURIComponent(info.server_id)}`)
+    const serverId = info.claimed === false ? await this.#claim(address, info) : info.server_id
+    const server = await this.#hub('PUT', `/api/directory/${encodeURIComponent(serverId)}`)
     await this.#recache((list) => [...list.filter((s) => s.id !== server.id), server])
     return server
+  }
+
+  // Registers an unclaimed server under this account and hands it the
+  // credentials. If the server refuses them (someone else got there first),
+  // the registration is withdrawn so it does not linger on the account.
+  async #claim(address, info) {
+    const reg = await this.registerServer({ name: info.name || new URL(address).host, address })
+    try {
+      await send(this.#fetch, `${address}/waka/claim`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ server_id: reg.id, secret: reg.secret }),
+      }, this.#timeoutMs)
+    } catch (err) {
+      await this.deleteServer(reg.id).catch(() => {})
+      throw err
+    }
+    return reg.id
   }
 
   async removeServer(id) {

@@ -413,3 +413,45 @@ test('a call the app aborts itself does not mark the server unreachable', async 
   await assert.rejects(slow)
   assert.equal(conn.reachable, true)
 })
+
+test('claims a server nobody owns yet on the way into the directory', async () => {
+  await client()
+  const order = []
+  hub({
+    'GET http://srv/.well-known/waka-server': (c) => c.json({ issuer: HUB, app: 'notes', name: 'Mine', claimed: false }),
+    'POST /api/servers': (c) => { order.push(['register', JSON.parse(c.init.body)]); c.json({ id: 'new1', secret: 's3', name: 'Mine', address: 'http://srv', app: 'notes' }) },
+    'POST http://srv/waka/claim': (c) => { order.push(['claim', JSON.parse(c.init.body)]); c.status(204) },
+    'PUT /api/directory/new1': (c) => { order.push(['directory']); c.json({ id: 'new1', name: 'Mine', address: 'http://srv', app: 'notes' }) },
+  })
+  const server = await waka.addServer('http://srv/')
+  assert.equal(server.id, 'new1')
+  assert.deepEqual(order, [
+    ['register', { name: 'Mine', address: 'http://srv' }],
+    ['claim', { server_id: 'new1', secret: 's3' }],
+    ['directory'],
+  ])
+})
+
+test('withdraws the registration when someone else claimed the server first', async () => {
+  await client()
+  const deleted = []
+  hub({
+    'GET http://srv/.well-known/waka-server': (c) => c.json({ issuer: HUB, app: 'notes', claimed: false }),
+    'POST /api/servers': (c) => c.json({ id: 'new1', secret: 's3', name: 'srv', address: 'http://srv', app: 'notes' }),
+    'POST http://srv/waka/claim': (c) => c.json({ error: 'this server has already been claimed' }, 409),
+    'DELETE /api/servers/new1': (c) => { deleted.push('new1'); c.status(204) },
+  })
+  await assert.rejects(waka.addServer('http://srv'), /already been claimed/)
+  assert.deepEqual(deleted, ['new1'])
+  assert.equal(net.to('/api/directory/new1').length, 0)
+})
+
+test('adds an owned server without claiming it', async () => {
+  await client()
+  hub({
+    'GET http://srv/.well-known/waka-server': (c) => c.json({ issuer: HUB, server_id: 'old', claimed: true }),
+    'PUT /api/directory/old': (c) => c.json({ id: 'old', name: 'Old', address: 'http://srv', app: 'notes' }),
+  })
+  assert.equal((await waka.addServer('http://srv')).id, 'old')
+  assert.equal(net.to('/api/servers', 'POST').length, 0)
+})

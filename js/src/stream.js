@@ -1,4 +1,4 @@
-// The one stream to the hub, kept alive. Modelled on Molten's GatewayClient:
+// The one stream to the hub, kept alive. Modelled on Together's GatewayClient:
 // a handshake deadline, a watchdog on the hub's keep-alive, a probe when
 // something hints the network changed, and backoff with jitter.
 //
